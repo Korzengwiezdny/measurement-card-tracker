@@ -16,6 +16,24 @@ class AppTests(unittest.TestCase):
             Path(str(self.path)+suffix).unlink(missing_ok=True)
     def new_card_body(self,**patch):
         return dict(serial='NEW1 + NEW2',model='PXIe 4081',hall='Maintenance',location='Magazyn MD',status='nieustalony',physicallyVerified=True,reason='Zakup 2026',**patch)
+    def test_add_empty_station_then_assign_card(self):
+        with server.connect() as c:
+            station=server.add_station(c,dict(name=' ate16 ',hall='H2'),self.user)
+            self.assertEqual(station['name'],'ATE 16')
+            self.assertEqual(c.execute('SELECT count(*) FROM cards').fetchone()[0],3)
+            body={**self.new_card_body(),'location':'ATE 16','hall':'H2','locationId':station['id'],'status':'sprawna','calibration':'2030-01-01','installationVerified':True}
+            card=server.register_card(c,body,self.user)
+            self.assertEqual(c.execute('SELECT location,hall FROM cards WHERE id=?',(card['id'],)).fetchone()[:],('ATE 16','H2'))
+    def test_station_duplicate_alias_is_blocked(self):
+        with server.connect() as c:server.add_station(c,dict(name='ATE 1',hall='H2'),self.user)
+        for name in ('ate01','ATE 01','ATE 1','ATE0001'):
+            with self.assertRaises(server.Problem):
+                with server.connect() as c:server.add_station(c,dict(name=name,hall='H3'),self.user)
+    def test_station_invalid_name_has_no_side_effect(self):
+        for name in ('Magazyn','ATE','ATE -1','ATE test'):
+            with self.assertRaises(server.Problem):
+                with server.connect() as c:server.add_station(c,dict(name=name,hall='H2'),self.user)
+        with server.connect() as c:self.assertEqual(c.execute('SELECT count(*) FROM events').fetchone()[0],0)
     def move_body(self,**patch):
         with server.connect() as c:lid=c.execute("SELECT id FROM locations WHERE name='Dział kalibracji'").fetchone()[0]
         return {**dict(id='a',version=0,locationId=lid,status='kalibracja',reason='Oddanie do kalibracji',physicallyVerified=True),**patch}
@@ -229,7 +247,7 @@ class AppTests(unittest.TestCase):
             req('/api/login',{'name':'viewer','password':'test-password-123'});csrf=req('/api/session')['csrf']
             with self.assertRaises(urllib.error.HTTPError) as e:req('/api/swap',self.b,csrf)
             self.assertEqual(e.exception.code,403);self.assertEqual(len(req('/api/data')['cards']),3)
-            for path,body in [('/api/move',self.move_body()),('/api/location',dict(name='New',hall='H2')),('/api/backup',{})]:
+            for path,body in [('/api/move',self.move_body()),('/api/location',dict(name='New',hall='H2')),('/api/backup',{}),('/api/station',dict(name='ATE 16',hall='H2'))]:
                 with self.assertRaises(urllib.error.HTTPError) as e:req(path,body,csrf)
                 self.assertEqual(e.exception.code,403)
             with self.assertRaises(urllib.error.HTTPError) as e:req('/api/backup-info')

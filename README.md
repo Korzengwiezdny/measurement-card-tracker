@@ -1,10 +1,10 @@
 # Maintenance — rejestr kart pomiarowych
 
-Wersja **0.1.0-alpha.1**, przeznaczona do prób i lokalnej pracy na komputerze administratora. Python 3.11+, SQLite, openpyxl; interfejs w języku polskim.
+Wersja **0.1.0-alpha.2**, przeznaczona do prób i lokalnej pracy na komputerze administratora. Python 3.11+, SQLite, openpyxl; interfejs w języku polskim.
 
 ## Funkcje
 
-- Spis kart, wyposażenie ATE, wyszukiwanie i eksport Excel.
+- Spis kart, wyposażenie ATE, tworzenie pustych stanowisk, wyszukiwanie i eksport Excel.
 - Podmiana zgodnych modeli z fizycznymi potwierdzeniami, atomową zmianą obu lokalizacji i historią.
 - Identyfikacja po S/N; MU jest opcjonalny. Kilka S/N połączonych `+` opisuje jedną kartę.
 - Dodanie zakupu, wycofanie do archiwum, rozbieżności na stanowisku.
@@ -30,7 +30,7 @@ Na komputerze z gotowym Pythonem i zależnościami można korzystać z `Uruchom.
 .\.venv\Scripts\python.exe test_app.py
 ```
 
-31 testów automatycznych. Testy korzystają z tymczasowej, syntetycznej bazy i nie zmieniają używanego spisu. Interfejs dodatkowo sprawdzono na oddzielnej bazie testowej; fizyczny czytnik wymaga próby na stanowisku.
+34 testy automatyczne. Testy korzystają z tymczasowej, syntetycznej bazy i nie zmieniają używanego spisu. Interfejs dodatkowo sprawdzono na oddzielnej bazie testowej; fizyczny czytnik wymaga próby na stanowisku.
 
 ## Dane i aktualizacje
 

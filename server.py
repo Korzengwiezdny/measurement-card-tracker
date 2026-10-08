@@ -246,6 +246,25 @@ def destination(c,b):
     if not row:raise Problem('Wybierz aktywne miejsce ze słownika lokalizacji.')
     return row['hall'],row['name']
 
+def add_station(c,b,user):
+    name=' '.join(required_string(b,'name',80).upper().split())
+    match=re.fullmatch(r'(ATE|SATE|VATE)\s*(\d+(?:\.\d+)?)',name)
+    if not match:raise Problem('Podaj stanowisko np. ATE 16, SATE 04 lub VATE 2.1.')
+    prefix,number=match.groups()
+    number='.'.join(str(int(part)) for part in number.split('.'))
+    if '.' not in number:number=number.zfill(2)
+    name=prefix+' '+number
+    hall=required_string(b,'hall')
+    c.execute('BEGIN IMMEDIATE')
+    def key(value):
+        parsed=re.fullmatch(r'(ATE|SATE|VATE)\s*(\d+(?:\.\d+)?)',value.strip().upper())
+        return (parsed[1],tuple(int(part) for part in parsed[2].split('.'))) if parsed else value.strip().upper()
+    if any(key(r['name'])==key(name) for r in c.execute('SELECT name FROM locations')):raise Problem('Takie stanowisko już istnieje. Sprawdź listę lokalizacji, również wyłączonych.',409)
+    c.execute('INSERT INTO locations(name,hall) VALUES(?,?)',(name,hall))
+    sid=c.execute('SELECT last_insert_rowid()').fetchone()[0]
+    c.execute('INSERT INTO events VALUES(?,?,?,?,?,?,?,?,?,NULL)',(secrets.token_hex(12),now(),user['name'],'dodanie stanowiska',None,None,'[]','[]',name+' / '+hall))
+    c.commit();return {'id':sid,'name':name,'hall':hall}
+
 def location_update(c,b,user):
     c.execute('BEGIN IMMEDIATE')
     name=required_string(b,'name');hall=required_string(b,'hall')
@@ -506,6 +525,7 @@ class Handler(BaseHTTPRequestHandler):
                     undo(c,b,user);return self.reply({'ok':True})
                 if user['role']!='admin': raise Problem('Wymagane uprawnienia administratora.',403)
                 if path=='/api/location':return self.reply(location_update(c,b,user))
+                if path=='/api/station':return self.reply(add_station(c,b,user))
                 if path=='/api/backup':return self.reply(manual_backup())
                 if path=='/api/resolve':return self.reply(resolve_review(c,b,user))
                 if path=='/api/card-add':return self.reply(register_card(c,b,user))

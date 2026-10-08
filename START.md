@@ -73,3 +73,9 @@ Aktualizacja kalibracji przy podmianie: obowiązkowe potwierdzenie technika zast
 - W „Baza i użytkownicy” administrator widzi datę i nazwę ostatniej kopii oraz zgłoszony błąd automatycznej kopii. „Wykonaj kopię teraz” wykonuje kopię i kontroluje jej integralność. Nadal kopiuj pliki z backups na osobny nośnik.
 
 Przenoszenie i podmiana odrzucają zapis na nieaktualnej wersji karty. Zmiany są atomowe: karta i jej historia zapisują się razem. Wszystkie testy wykonywano na odrębnej bazie; aktualizacja zachowuje spis, statusy i historię głównej bazy.
+
+## Nowe stanowiska — 0.1.0-alpha.2
+
+Administrator wybiera „Stanowiska ATE” → „Dodaj stanowisko”, wpisuje nazwę (np. ATE 16, SATE 04, VATE 2.1) i halę. Puste stanowisko od razu pojawia się na liście. Otwórz je i wybierz „Dodaj nową kartę”: miejsce i hala wypełnią się automatycznie. Możesz też przenieść istniejącą kartę do tego miejsca z jej szczegółów. Dla wymiany istniejącego wyposażenia użyj podmiany.
+
+Nowe stanowiska są wpisami słownika lokalizacji. Historia zachowuje ich utworzenie. Wyłączenie odbywa się w „Lokalizacje” i nie usuwa istniejących kart. Nazwy ATE16 i ATE 16 są traktowane jako to samo stanowisko; nie można założyć kolejnego o tej samej nazwie dla innej hali.

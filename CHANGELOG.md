@@ -1,5 +1,14 @@
 # Historia wersji
 
+## 0.1.0-alpha.2 — 2026-10-08
+
+- Administrator może dodać puste ATE, SATE lub VATE z przypisaną halą.
+- Puste stanowiska są widoczne w przeglądzie i liście stanowisk.
+- Dodawanie karty z widoku stanowiska wypełnia lokalizację i halę.
+- Normalizacja nazwy i blokada duplikatów niezależnie od hali.
+- Dodanie stanowiska zapisuje autora, datę i nazwę w historii.
+- 34 testy oraz próba dodania pustego stanowiska i pierwszej karty na kopii bazy.
+
 ## 0.1.0-alpha.1 — 2026-10-08
 
 Pierwsza wersja objęta Git, zapisująca bieżący stan aplikacji.
