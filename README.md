@@ -1,10 +1,10 @@
-# Maintenance — rejestr kart pomiarowych
+# Measurement Card Tracker — rejestr kart pomiarowych
 
 Wersja **0.1.0-alpha.2**, przeznaczona do prób i lokalnej pracy na komputerze administratora. Python 3.11+, SQLite, openpyxl; interfejs w języku polskim.
 
 ## Po co powstała aplikacja
 
-Maintenance pomaga utrzymać ciągłość produkcji i ustalić, gdzie znajduje się każda fizyczna karta pomiarowa. Dział kalibracji przekazuje listę kart wymagających podmiany przed końcem ważności kalibracji lub walidacji. Technik montuje zgodną kartę zastępczą, a wyjętą przekazuje do kalibracji. Przy awarii karta może trafić do serwisu, a po decyzji o nieopłacalnej lub niemożliwej naprawie zostać wycofana ze spisu, z odnotowaniem faktycznego miejsca odłożenia lub utylizacji.
+Measurement Card Tracker pomaga utrzymać ciągłość produkcji i ustalić, gdzie znajduje się każda fizyczna karta pomiarowa. Dział kalibracji przekazuje listę kart wymagających podmiany przed końcem ważności kalibracji lub walidacji. Technik montuje zgodną kartę zastępczą, a wyjętą przekazuje do kalibracji. Przy awarii karta może trafić do serwisu, a po decyzji o nieopłacalnej lub niemożliwej naprawie zostać wycofana ze spisu, z odnotowaniem faktycznego miejsca odłożenia lub utylizacji.
 
 Aplikacja zapisuje autora, powód i historię lokalizacji, aby można było odtworzyć drogę karty. Obecny etap to lokalna praca właściciela projektu; docelowo z jednej wspólnej bazy będą korzystać technicy utrzymania ruchu. Lista z działu kalibracji jest obecnie wejściem do procesu organizacyjnego — aplikacja nie pobiera jej automatycznie.
 

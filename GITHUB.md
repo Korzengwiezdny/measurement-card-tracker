@@ -1,13 +1,13 @@
-# Publikacja Maintenance na GitHubie
+# Publikacja Measurement Card Tracker na GitHubie
 
-Repozytorium ma gałąź `main` oraz tagi `v0.1.0-alpha.1` i `v0.1.0-alpha.2`. Nie trzeba zakładać osobnego repozytorium dla każdej wersji. Dla projektu w fazie prób zalecane jest repozytorium prywatne.
+Repozytorium ma gałąź `main` oraz tagi `v0.1.0-alpha.1` i `v0.1.0-alpha.2`. Nie trzeba zakładać osobnego repozytorium dla każdej wersji. Ustalona nazwa repozytorium: `measurement-card-tracker`. Repozytorium publiczne; dane operacyjne pozostają lokalnie.
 
 ## Pierwsza publikacja
 
-Utwórz na swoim koncie puste repozytorium, bez inicjalizowania README, licencji i .gitignore. W katalogu aplikacji wykonaj poniższe polecenia po zastąpieniu TWOJ_LOGIN i NAZWA_REPO:
+Utwórz na swoim koncie puste repozytorium, bez inicjalizowania README, licencji i .gitignore. W katalogu aplikacji wykonaj poniższe polecenia po zastąpieniu TWOJ_LOGIN:
 
 ```sh
-git remote add origin https://github.com/TWOJ_LOGIN/NAZWA_REPO.git
+git remote add origin https://github.com/TWOJ_LOGIN/measurement-card-tracker.git
 git push -u origin main
 git push origin v0.1.0-alpha.1 v0.1.0-alpha.2
 ```
