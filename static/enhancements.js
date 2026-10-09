@@ -105,3 +105,13 @@ overview=function(c){originalOverview(c,allStationNames(c))};
 function addStationForm(){openModal('Dodaj stanowisko',`<p>Stanowisko pojawi się na liście również bez kart i będzie dostępne jako lokalizacja przy dodawaniu oraz przenoszeniu kart.</p>${field('stationName','Nazwa stanowiska (np. ATE 16)')}${field('stationHall','Hala')}<p id="stationError" class="error"></p>`,'<button id="saveStation" class="primary">Dodaj stanowisko</button>');bind('#saveStation',async()=>{const btn=$('#saveStation');btn.disabled=true;try{const result=await api('station',{name:$('#stationName').value,hall:$('#stationHall').value});modal.close();await reload();toast('Dodano '+result.name+'. Możesz przypisać pierwszą kartę.')}catch(e){$('#stationError').textContent=e.message;btn.disabled=false}})}
 const originalAddCardForm=addCardForm;
 addCardForm=function(){originalAddCardForm();if(!/^(ATE|SATE|VATE)/i.test(locationFilter))return;const l=activeLocations().find(l=>l.name===locationFilter);if(l&&$('#new_destination')){$('#new_destination').value=String(l.id);$('#new_destination').onchange()}};
+
+// Verification is accessible from the register and the equipment list of any ATE.
+const drawBeforeVerification=drawCards;
+drawCards=function(){drawBeforeVerification();if(!writable())return;document.querySelectorAll('[data-card]').forEach(b=>{const c=data.cards.find(c=>c.id===b.dataset.card);if(!c)return;const button=document.createElement('button');button.textContent='Weryfikuj / popraw';button.onclick=()=>verificationForm(c);b.after(button)})};
+function verificationForm(c){
+ openModal('Weryfikacja spisu · '+esc(c.serial),`<p><strong>${esc(c.model)}</strong> · ${esc(place(c))}</p><p>Wybierz sytuację stwierdzoną przy sprawdzeniu fizycznej karty.</p>${admin()?'<p><button id="verifyEdit">Ta sama karta — popraw dane / model / S/N</button></p><p><button id="verifyStatus">Potwierdź status lub wyjaśnij lokalizację</button></p>':'<p>Korektę opisu tej samej karty wykonuje administrator.</p>'}${/^(ATE|SATE|VATE)/i.test(c.location)?'<p><button id="verifyDifferent">Na stanowisku jest inna karta — popraw spis</button></p>':''}<p>Korekta zachowuje historię. Przy innej karcie wpis nieodnaleziony otrzyma lokalizację „Nieustalona” i oznaczenie do weryfikacji; znaleziona karta otrzyma lokalizację tego stanowiska.</p>`);
+ bind('#verifyEdit',()=>editCard(c));bind('#verifyStatus',()=>resolveForm(c));bind('#verifyDifferent',()=>discrepancyForm(c.id));
+}
+const detailsBeforeVerification=cardDetails;
+cardDetails=function(id){detailsBeforeVerification(id);const c=data.cards.find(c=>c.id===id);if(!c||!writable())return;$('.modalfoot').insertAdjacentHTML('afterbegin','<button id="verifyCard">Weryfikuj / popraw spis</button>');bind('#verifyCard',()=>verificationForm(c))};

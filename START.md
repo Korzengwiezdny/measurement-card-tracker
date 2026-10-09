@@ -87,3 +87,7 @@ Zakładka „Stan magazynowy” pokazuje karty w magazynach, sprawny zapas i bra
 Liczone są aktywne karty o statusie sprawna, bez blokad danych i bez współdzielonego S/N z innym rekordem. Kalibrację operator potwierdza przed montażem; data nie blokuje zaliczenia do zapasu. Modele porównujemy tak jak przy podmianie (m.in. PXI-E = PXIe), zachowując rozróżnienie PXI i PXIe.
 
 Przy aktualizacji jako magazyn oznaczane są istniejące lokalizacje zaczynające się od Magazyn, Magazn, Półka oraz 33-B. Administrator może zmienić wybór przez „Wybierz lokalizacje magazynowe”. Nowe miejsca wymagają świadomego oznaczenia jako magazyn. Serwis i kalibracja domyślnie nie są magazynem. Puste stanowiska są oznaczone jako brak wyposażenia do oceny.
+
+## Weryfikacja spisu bez podmiany
+
+W spisie kart lub po otwarciu konkretnego ATE wybierz „Weryfikuj / popraw”. Administrator może poprawić opis tej samej karty. Opcja „Na stanowisku jest inna karta” jest dostępna także dla technika: wskazuje kartę znalezioną (istniejącą lub nową), zapisuje stan zastany i oznacza nieodnalezioną kartę do weryfikacji. Nie wykonuje fizycznej podmiany ani nie otwiera formularza podmiany po zapisie. Obie operacje zapisują historię.

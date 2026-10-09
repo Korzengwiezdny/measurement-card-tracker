@@ -1,3 +1,9 @@
+# 0.1.0-alpha.4 — 2026-10-09
+
+- Weryfikacja i korekta stanu zastanego dostępna bez podmiany ze spisu i wyposażenia ATE.
+- Osobny wybór: edycja tej samej karty lub inna fizyczna karta. Historia i blokady wersji pozostają zachowane.
+- Wspólny filtr magazynu obejmujący wszystkie wskazane półki.
+
 # Historia wersji
 
 ## 0.1.0-alpha.3 — 2026-10-09
