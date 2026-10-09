@@ -1,6 +1,6 @@
 # Maintenance — rejestr kart pomiarowych
 
-Wersja **0.1.0-alpha.4**, przeznaczona do prób i lokalnej pracy na komputerze administratora. Python 3.11+, SQLite, openpyxl; interfejs w języku polskim.
+Wersja **0.1.0-alpha.5**, przeznaczona do prób i lokalnej pracy na komputerze administratora. Python 3.11+, SQLite, openpyxl; interfejs w języku polskim.
 
 ## Funkcje
 
