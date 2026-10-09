@@ -1,6 +1,12 @@
-# Maintenance — rejestr kart pomiarowych
+# Measurement Card Tracker — rejestr kart pomiarowych
 
 Wersja **0.1.0-alpha.7**, przeznaczona do prób i lokalnej pracy na komputerze administratora. Python 3.11+, SQLite, openpyxl; interfejs w języku polskim.
+
+## Po co powstała aplikacja
+
+Measurement Card Tracker pomaga utrzymać ciągłość produkcji i ustalić, gdzie znajduje się każda fizyczna karta pomiarowa. Dział kalibracji przekazuje listę kart wymagających podmiany przed końcem ważności kalibracji lub walidacji. Technik montuje zgodną kartę zastępczą, a wyjętą przekazuje do kalibracji. Przy awarii karta może trafić do serwisu, a po decyzji o nieopłacalnej lub niemożliwej naprawie zostać wycofana ze spisu, z odnotowaniem faktycznego miejsca odłożenia lub utylizacji.
+
+Aplikacja zapisuje autora, powód i historię lokalizacji, aby można było odtworzyć drogę karty. Obecny etap to lokalna praca właściciela projektu; docelowo z jednej wspólnej bazy będą korzystać technicy utrzymania ruchu. Lista z działu kalibracji jest obecnie wejściem do procesu organizacyjnego — aplikacja nie pobiera jej automatycznie.
 
 ## Funkcje
 
@@ -43,3 +49,14 @@ Przed aktualizacją wykonaj kopię bazy i zatrzymaj serwer. Zachowaj foldery `da
 ## Wersjonowanie
 
 Plik `VERSION` określa wersję wydania. Pierwszy tag to `v0.1.0-alpha.1`. Kolejne wersje próbne: `0.1.0-alpha.2` itd. Zmiany zapisuj w [CHANGELOG.md](CHANGELOG.md). Repozytorium można przesłać do wybranego zdalnego serwera Git po skonfigurowaniu jego adresu.
+
+## Wydania i historia Git
+
+- `v0.1.0-alpha.1`: pierwsza wersja lokalna, ewidencja i historia ruchów kart.
+- `v0.1.0-alpha.2`: dodawanie pustych stanowisk ATE/SATE/VATE i przypisywanie wyposażenia.
+
+Obie wersje są tagami jednego repozytorium. Na GitHubie można przeglądać je i pobierać osobno; opis zmian jest w `CHANGELOG.md`. Bieżąca dokumentacja na `main` może zawierać późniejsze doprecyzowania bez zmiany kodu wydania. Nie zmieniamy istniejących tagów przy poprawkach dokumentacji.
+
+Repozytorium zawiera wyłącznie kod, instrukcje i testy na syntetycznych danych. Nie zawiera rzeczywistego spisu kart, historii operacyjnej, kont użytkowników, haseł ani kopii baz. Po czystej instalacji aplikacja tworzy pustą bazę, a użytkownik zakłada własne konto administratora. Przykładowe identyfikatory kart i kont w testach są fikcyjne.
+
+Instrukcja publikowania kolejnych wersji: [GITHUB.md](GITHUB.md).
