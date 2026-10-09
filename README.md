@@ -1,6 +1,6 @@
 # Maintenance — rejestr kart pomiarowych
 
-Wersja **0.1.0-alpha.2**, przeznaczona do prób i lokalnej pracy na komputerze administratora. Python 3.11+, SQLite, openpyxl; interfejs w języku polskim.
+Wersja **0.1.0-alpha.3**, przeznaczona do prób i lokalnej pracy na komputerze administratora. Python 3.11+, SQLite, openpyxl; interfejs w języku polskim.
 
 ## Funkcje
 
@@ -11,6 +11,8 @@ Wersja **0.1.0-alpha.2**, przeznaczona do prób i lokalnej pracy na komputerze a
 - Przenoszenie oraz powroty z kalibracji i naprawy.
 - Słownik lokalizacji, filtry historii, szkic podmiany, skaner S/N działający jak klawiatura.
 - Konta administratora, technika i odczytu; dzienne i ręczne kopie bazy.
+
+- Stan magazynowy i braki zapasu według modelu oraz stanowiska.
 
 ## Czysta instalacja z Git
 
@@ -30,7 +32,7 @@ Na komputerze z gotowym Pythonem i zależnościami można korzystać z `Uruchom.
 .\.venv\Scripts\python.exe test_app.py
 ```
 
-34 testy automatyczne. Testy korzystają z tymczasowej, syntetycznej bazy i nie zmieniają używanego spisu. Interfejs dodatkowo sprawdzono na oddzielnej bazie testowej; fizyczny czytnik wymaga próby na stanowisku.
+37 testów automatycznych. Testy korzystają z tymczasowej, syntetycznej bazy i nie zmieniają używanego spisu. Interfejs dodatkowo sprawdzono na oddzielnej bazie testowej; fizyczny czytnik wymaga próby na stanowisku.
 
 ## Dane i aktualizacje
 

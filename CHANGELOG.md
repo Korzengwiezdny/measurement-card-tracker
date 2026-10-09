@@ -1,5 +1,13 @@
 # Historia wersji
 
+## 0.1.0-alpha.3 — 2026-10-09
+
+- Stan magazynowy według modelu i ocena zapasu dla każdego ATE/SATE/VATE.
+- Wspólny zapas: minimum jedna sprawna karta bez blokad identyfikacji.
+- Szczegóły kart magazynowych i powody wykluczenia z zapasu.
+- Konfigurowalne lokalizacje magazynowe, wyszukiwanie i filtr braków.
+- 37 testów, w tym wiele S/N jednej karty, duplikaty i wspólny zapas.
+
 ## 0.1.0-alpha.2 — 2026-10-08
 
 - Administrator może dodać puste ATE, SATE lub VATE z przypisaną halą.

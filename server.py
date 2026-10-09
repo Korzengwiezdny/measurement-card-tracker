@@ -49,6 +49,11 @@ def init_db():
         if not exists:
             c.execute("INSERT OR IGNORE INTO locations(name,hall) SELECT DISTINCT location,hall FROM cards WHERE location<>'' AND hall<>'' AND location<>'Nieustalona'")
             c.executemany('INSERT OR IGNORE INTO locations(name,hall) VALUES(?,?)',[('Magazyn MD','Maintenance'),('Dział kalibracji','H2')])
+        if 'stock' not in {r[1] for r in c.execute('PRAGMA table_info(locations)')}:
+            c.execute('ALTER TABLE locations ADD COLUMN stock INTEGER NOT NULL DEFAULT 0')
+            for r in c.execute('SELECT id,name FROM locations').fetchall():
+                name=r[1].strip().lower()
+                if name.startswith(('magazyn','magazn','półka')) or name=='33-b':c.execute('UPDATE locations SET stock=1 WHERE id=?',(r[0],))
 
 def daily_backup(db_path=None, folder=None):
     source=Path(db_path or DB_PATH)
@@ -241,6 +246,39 @@ def undo(c,b,user):
     c.execute('INSERT INTO events VALUES(?,?,?,?,?,?,?,?,?,?)',(secrets.token_hex(12),now(),user['name'],'cofnięcie',e['incoming'],e['outgoing'],json.dumps(current),json.dumps(restored),required_string(b,'note',2000),e['id']))
     c.commit()
 
+def stock_report(c):
+    if not c.in_transaction:c.execute('BEGIN')
+    cards=[dict(r) for r in c.execute('SELECT * FROM cards')]
+    places=[dict(r) for r in c.execute('SELECT * FROM locations WHERE stock=1 AND active=1')]
+    warehouse={(r['hall'],r['name']) for r in places}
+    models={};stations={}
+    for card in cards:
+        if card['retired']:continue
+        key=model_key(card['model'])
+        item=models.setdefault(key,{'model':key,'labels':set(),'stored':[],'ready':[],'blocked':[],'stations':set()})
+        item['labels'].add(card['model'])
+        if (card['hall'],card['location']) in warehouse:
+            item['stored'].append(card)
+            reason=''
+            try:require_identity(c,card)
+            except Problem as e:reason=e.message
+            if card['status']!='sprawna':reason=('Status: '+card['status']+'. '+reason).strip()
+            if reason:item['blocked'].append({**card,'stockReason':reason})
+            else:item['ready'].append(card)
+        if re.match(r'^(ATE|SATE|VATE)\s*\d',card['location'],re.I):
+            station=re.sub(r'\s+','',card['location'].upper())
+            display=re.sub(r'^(ATE|SATE|VATE)',r'\1 ',station)
+            stations.setdefault(display,set()).add(key);item['stations'].add(display)
+    for r in c.execute('SELECT name FROM locations WHERE active=1'):
+        if re.match(r'^(ATE|SATE|VATE)\s*\d',r['name'],re.I):
+            stations.setdefault(re.sub(r'^(ATE|SATE|VATE)',r'\1 ',re.sub(r'\s+','',r['name'].upper())),set())
+    rows=[]
+    for key,item in sorted(models.items()):
+        if not item['stored'] and not item['stations']:continue
+        rows.append({**item,'labels':sorted(item['labels']),'stations':sorted(item['stations']),'available':len(item['ready']),'total':len(item['stored'])})
+    station_rows=[{'name':name,'models':sorted(keys),'missing':[key for key in sorted(keys) if not models[key]['ready']]} for name,keys in sorted(stations.items())]
+    return {'at':now(),'locations':places,'models':rows,'stations':station_rows,'stored':sum(r['total'] for r in rows),'ready':sum(r['available'] for r in rows),'missingModels':[r['model'] for r in rows if r['stations'] and not r['available']]}
+
 def destination(c,b):
     row=c.execute('SELECT * FROM locations WHERE id=? AND active=1',(b.get('locationId'),)).fetchone()
     if not row:raise Problem('Wybierz aktywne miejsce ze słownika lokalizacji.')
@@ -274,11 +312,14 @@ def location_update(c,b,user):
         old=c.execute('SELECT * FROM locations WHERE id=?',(b['id'],)).fetchone()
         if not old:raise Problem('Nie znaleziono miejsca.',404)
         if (name,hall)!=(old['name'],old['hall']):raise Problem('Aby zmienić nazwę, dodaj nowe miejsce. Historia zachowuje dawny zapis.')
-        c.execute('UPDATE locations SET active=? WHERE id=?',(int(active),b['id']))
+        stock=b.get('stock',bool(old['stock']))
+        if stock not in (True,False,0,1):raise Problem('Nieprawidłowe oznaczenie magazynu.')
+        if stock and re.match(r'^(ATE|SATE|VATE)\s*\d',name,re.I):raise Problem('Stanowisko nie może być magazynem zapasu.')
+        c.execute('UPDATE locations SET active=?,stock=? WHERE id=?',(int(active),int(stock),b['id']))
     else:
         if c.execute('SELECT 1 FROM locations WHERE LOWER(name)=LOWER(?) AND LOWER(hall)=LOWER(?)',(name,hall)).fetchone():raise Problem('Takie miejsce już istnieje.',409)
         c.execute('INSERT INTO locations(name,hall,active) VALUES(?,?,?)',(name,hall,int(active)))
-    c.execute('INSERT INTO events VALUES(?,?,?,?,?,?,?,?,?,NULL)',(secrets.token_hex(12),now(),user['name'],'słownik lokalizacji',None,None,'[]','[]',name+' / '+hall+(' — aktywne' if active else ' — wyłączone')))
+    c.execute('INSERT INTO events VALUES(?,?,?,?,?,?,?,?,?,NULL)',(secrets.token_hex(12),now(),user['name'],'słownik lokalizacji',None,None,'[]','[]',name+' / '+hall+(' — aktywne' if active else ' — wyłączone')+('; magazyn zapasu: '+('tak' if b['stock'] else 'nie') if 'stock' in b else '')))
     c.commit();return {'ok':True}
 
 def move_card(c,b,user):
@@ -464,9 +505,9 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
             path=urlparse(self.path).path
-            if path in ('/','/app.js','/enhancements.js','/style.css'):
-                filename={'/':'index.html','/app.js':'app.js','/enhancements.js':'enhancements.js','/style.css':'style.css'}[path]
-                return self.reply((ROOT/'static'/filename).read_bytes(),ctype={'/':'text/html; charset=utf-8','/app.js':'text/javascript; charset=utf-8','/enhancements.js':'text/javascript; charset=utf-8','/style.css':'text/css; charset=utf-8'}[path])
+            if path in ('/','/app.js','/enhancements.js','/stock.js','/style.css'):
+                filename={'/':'index.html','/app.js':'app.js','/stock.js':'stock.js','/enhancements.js':'enhancements.js','/style.css':'style.css'}[path]
+                return self.reply((ROOT/'static'/filename).read_bytes(),ctype={'/':'text/html; charset=utf-8','/app.js':'text/javascript; charset=utf-8','/stock.js':'text/javascript; charset=utf-8','/enhancements.js':'text/javascript; charset=utf-8','/style.css':'text/css; charset=utf-8'}[path])
             user=self.session()
             with connect() as c:
                 if path=='/api/session': return self.reply({'user':{k:user[k] for k in ('id','name','role')} if user else None,'csrf':user['csrf'] if user else '', 'setup':c.execute('SELECT COUNT(*) FROM users').fetchone()[0]==0})
@@ -476,6 +517,7 @@ class Handler(BaseHTTPRequestHandler):
                     if user['role']!='admin': raise Problem('Wymagane uprawnienia administratora.',403)
                     return self.reply([dict(r) for r in c.execute('SELECT id,name,role,active FROM users')])
                 if path=='/api/locations':return self.reply([dict(r) for r in c.execute('SELECT * FROM locations ORDER BY name,hall')])
+                if path=='/api/stock':return self.reply(stock_report(c))
                 if path=='/api/backup-info':
                     if user['role']!='admin':raise Problem('Wymagany administrator.',403)
                     return self.reply(backup_info())

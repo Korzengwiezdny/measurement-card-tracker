@@ -16,6 +16,29 @@ class AppTests(unittest.TestCase):
             Path(str(self.path)+suffix).unlink(missing_ok=True)
     def new_card_body(self,**patch):
         return dict(serial='NEW1 + NEW2',model='PXIe 4081',hall='Maintenance',location='Magazyn MD',status='nieustalony',physicallyVerified=True,reason='Zakup 2026',**patch)
+    def test_stock_shared_spare_and_model_alias(self):
+        with server.connect() as c:
+            c.execute("UPDATE locations SET stock=1 WHERE name='Magazyn'")
+            c.execute("UPDATE cards SET model='PXI-E 4081' WHERE id='a'")
+            c.execute("UPDATE cards SET location='ATE 09' WHERE id='c'");c.commit()
+            report=server.stock_report(c)
+            self.assertEqual(report['ready'],1)
+            self.assertEqual(len(report['stations']),2)
+            self.assertTrue(all(not s['missing'] for s in report['stations']))
+    def test_stock_excludes_broken_duplicate_and_service(self):
+        with server.connect() as c:
+            c.execute("UPDATE locations SET stock=1 WHERE name='Magazyn'")
+            c.execute("UPDATE cards SET status='naprawa' WHERE id='a'")
+            c.execute("UPDATE cards SET serial='SN2' WHERE id='c'");c.commit()
+            report=server.stock_report(c)
+            self.assertEqual(report['ready'],0);self.assertEqual(len(report['missingModels']),1)
+            self.assertEqual(len(report['models'][0]['blocked']),2)
+    def test_stock_multiple_serials_are_one_spare(self):
+        with server.connect() as c:
+            c.execute("UPDATE locations SET stock=1 WHERE name='Magazyn'")
+            c.execute("UPDATE cards SET serial='PART1 + PART2',mu='' WHERE id='a'")
+            c.execute("UPDATE cards SET retired=1 WHERE id='c'");c.commit()
+            report=server.stock_report(c);self.assertEqual((report['stored'],report['ready']),(1,1))
     def test_add_empty_station_then_assign_card(self):
         with server.connect() as c:
             station=server.add_station(c,dict(name=' ate16 ',hall='H2'),self.user)

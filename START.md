@@ -79,3 +79,11 @@ Przenoszenie i podmiana odrzucają zapis na nieaktualnej wersji karty. Zmiany s�
 Administrator wybiera „Stanowiska ATE” → „Dodaj stanowisko”, wpisuje nazwę (np. ATE 16, SATE 04, VATE 2.1) i halę. Puste stanowisko od razu pojawia się na liście. Otwórz je i wybierz „Dodaj nową kartę”: miejsce i hala wypełnią się automatycznie. Możesz też przenieść istniejącą kartę do tego miejsca z jej szczegółów. Dla wymiany istniejącego wyposażenia użyj podmiany.
 
 Nowe stanowiska są wpisami słownika lokalizacji. Historia zachowuje ich utworzenie. Wyłączenie odbywa się w „Lokalizacje” i nie usuwa istniejących kart. Nazwy ATE16 i ATE 16 są traktowane jako to samo stanowisko; nie można założyć kolejnego o tej samej nazwie dla innej hali.
+
+## Stan magazynowy — 0.1.0-alpha.3
+
+Zakładka „Stan magazynowy” pokazuje karty w magazynach, sprawny zapas i brakujące modele dla każdego ATE/SATE/VATE. Jedna karta o kilku S/N liczy się jako jedna sztuka. Wspólny zapas jednego modelu może zabezpieczać kilka stanowisk przy pojedynczej awarii; nie oznacza osobnej rezerwy dla każdego ATE.
+
+Liczone są aktywne karty o statusie sprawna, bez blokad danych i bez współdzielonego S/N z innym rekordem. Kalibrację operator potwierdza przed montażem; data nie blokuje zaliczenia do zapasu. Modele porównujemy tak jak przy podmianie (m.in. PXI-E = PXIe), zachowując rozróżnienie PXI i PXIe.
+
+Przy aktualizacji jako magazyn oznaczane są istniejące lokalizacje zaczynające się od Magazyn, Magazn, Półka oraz 33-B. Administrator może zmienić wybór przez „Wybierz lokalizacje magazynowe”. Nowe miejsca wymagają świadomego oznaczenia jako magazyn. Serwis i kalibracja domyślnie nie są magazynem. Puste stanowiska są oznaczone jako brak wyposażenia do oceny.
