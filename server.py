@@ -36,6 +36,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY, name TEXT UNIQUE NOT NULL, password TEXT NOT NULL, role TEXT NOT NULL CHECK(role IN ('admin','technik','odczyt')));
         CREATE TABLE IF NOT EXISTS cards(id TEXT PRIMARY KEY, mu TEXT NOT NULL, serial TEXT NOT NULL, manufacturer TEXT NOT NULL, model TEXT NOT NULL, hall TEXT NOT NULL, location TEXT NOT NULL, designation TEXT NOT NULL, calibration TEXT NOT NULL, calibration_note TEXT NOT NULL, replacement TEXT NOT NULL, notes TEXT NOT NULL, source_row INTEGER, review TEXT NOT NULL, version INTEGER NOT NULL DEFAULT 0);
         CREATE TABLE IF NOT EXISTS events(id TEXT PRIMARY KEY, at TEXT NOT NULL, actor TEXT NOT NULL, kind TEXT NOT NULL, incoming TEXT, outgoing TEXT, before_json TEXT NOT NULL, after_json TEXT NOT NULL, note TEXT NOT NULL, reverses TEXT UNIQUE);
+        CREATE TABLE IF NOT EXISTS calibration_tasks(id TEXT PRIMARY KEY, card_id TEXT NOT NULL, batch TEXT NOT NULL, created TEXT NOT NULL, actor TEXT NOT NULL, note TEXT NOT NULL, state TEXT NOT NULL DEFAULT 'otwarte', version INTEGER NOT NULL DEFAULT 0);
         CREATE TABLE IF NOT EXISTS imports(id TEXT PRIMARY KEY, at TEXT NOT NULL, actor TEXT NOT NULL, filename TEXT NOT NULL, count INTEGER NOT NULL);
         ''')
         if 'status' not in {r[1] for r in c.execute('PRAGMA table_info(cards)')}:
@@ -133,7 +134,7 @@ def parse_workbook(raw):
     return rows
 
 def register_revision(c):
-    snapshot={table:[tuple(r) for r in c.execute('SELECT * FROM '+table+' ORDER BY 1')] for table in ('cards','events','locations','imports')}
+    snapshot={table:[tuple(r) for r in c.execute('SELECT * FROM '+table+' ORDER BY 1')] for table in ('cards','events','locations','imports','calibration_tasks')}
     return hashlib.sha256(json.dumps(snapshot,sort_keys=True).encode()).hexdigest()
 
 def replace_register(c,rows,b,user):
@@ -143,7 +144,7 @@ def replace_register(c,rows,b,user):
     if b.get('revision')!=register_revision(c):raise Problem('Baza zmieniła się od podglądu. Sprawdź plik ponownie.',409)
     # The write lock prevents any changes between the archive snapshot and replacement.
     backup=manual_backup()
-    for table in ('events','cards','imports','locations'):c.execute('DELETE FROM '+table)
+    for table in ('calibration_tasks','events','cards','imports','locations'):c.execute('DELETE FROM '+table)
     insert_cards(c,rows)
     for r in c.execute('SELECT id,name FROM locations').fetchall():
         label=r['name'].strip().lower()
@@ -268,6 +269,77 @@ def undo(c,b,user):
         c.execute('UPDATE cards SET hall=?,location=?,status=?,version=? WHERE id=?',(new['hall'],new['location'],new.get('status','nieustalony'),new['version'],new['id']))
     c.execute('INSERT INTO events VALUES(?,?,?,?,?,?,?,?,?,?)',(secrets.token_hex(12),now(),user['name'],'cofnięcie',e['incoming'],e['outgoing'],json.dumps(current),json.dumps(restored),required_string(b,'note',2000),e['id']))
     c.commit()
+
+def calibration_matches(c,mu,serial):
+    norm=lambda v:re.sub(r'\s+','',text(v).upper())
+    wanted={norm(x) for x in serial.split('+') if norm(x)}
+    cards=[dict(r) for r in c.execute('SELECT * FROM cards WHERE retired=0')]
+    if wanted:
+        candidates=[r for r in cards if wanted.issubset({norm(x) for x in r['serial'].split('+')})]
+        if mu and norm(mu) not in ('BRAK','-'):candidates=[r for r in candidates if norm(r['mu'])==norm(mu)]
+        return candidates
+    if not mu or norm(mu) in ('BRAK','-'):return []
+    return [r for r in cards if norm(r['mu'])==norm(mu)]
+
+def calibration_preview(c,b):
+    try:
+        raw=base64.b64decode(b.get('file',''),validate=True)
+        wb=openpyxl.load_workbook(io.BytesIO(raw),read_only=True,data_only=True)
+        entries=[]
+        for sheet in wb:
+            values=sheet.iter_rows(values_only=True);headers=next(values,())
+            key=lambda x:re.sub(r'[^a-z0-9]','',text(x).lower())
+            names=[key(h) for h in headers]
+            sn=next((i for i,h in enumerate(names) if h in ('sn','numerseryjny','serial','serialnumber')),None)
+            mu=next((i for i,h in enumerate(names) if h in ('mu','numer mu'.replace(' ',''),'nrmu')),None)
+            if sn is None and mu is None:continue
+            for n,row in enumerate(values,2):
+                a=text(row[mu]) if mu is not None and mu<len(row) else ''
+                z=text(row[sn]) if sn is not None and sn<len(row) else ''
+                if not a and not z:continue
+                entries.append({'row':n,'sheet':sheet.title,'mu':a,'serial':z,'matches':calibration_matches(c,a,z)})
+                if len(entries)>2000:raise ValueError('Maksymalnie 2000 pozycji.')
+            break
+        wb.close()
+        if not entries:raise ValueError('Brak danych. Pierwszy wiersz: MU i/lub SN (Numer MU / Numer seryjny).')
+        return {'rows':entries}
+    except Exception as e:raise Problem('Nie można odczytać listy kalibracji: '+str(e))
+
+def calibration_add(c,b,user):
+    batch=required_string(b,'batch',120);ids=b.get('ids')
+    if not isinstance(ids,list) or not ids or len(ids)>2000 or any(not isinstance(i,str) for i in ids):raise Problem('Wybierz karty do planu.')
+    c.execute('BEGIN IMMEDIATE')
+    added=0
+    for card_id in set(ids):
+        card=c.execute('SELECT * FROM cards WHERE id=? AND retired=0',(card_id,)).fetchone()
+        if not card:raise Problem('Karta nie istnieje lub została wycofana. Odśwież listę.',409)
+        if c.execute("SELECT 1 FROM calibration_tasks WHERE card_id=? AND state='otwarte'",(card_id,)).fetchone():continue
+        c.execute('INSERT INTO calibration_tasks VALUES(?,?,?,?,?,?,?,0)',(secrets.token_hex(12),card_id,batch,now(),user['name'],text(b.get('note'))[:2000],'otwarte'));added+=1
+    c.commit();return {'added':added,'skipped':len(set(ids))-added}
+
+def calibration_list(c):
+    tasks=[]
+    for row in c.execute('SELECT * FROM calibration_tasks ORDER BY created DESC,id'):
+        task=dict(row);card=c.execute('SELECT * FROM cards WHERE id=?',(task['card_id'],)).fetchone()
+        task['card']=dict(card) if card else None;task['stage']='Do przygotowania';task['swapAt']='';task['returnAt']=''
+        for e in c.execute("SELECT * FROM events e WHERE at>=? AND (incoming=? OR outgoing=?) AND NOT EXISTS(SELECT 1 FROM events u WHERE u.reverses=e.id) ORDER BY at",(task['created'],task['card_id'],task['card_id'])):
+            after=next((x for x in json.loads(e['after_json']) if x.get('id')==task['card_id']),{})
+            if e['kind']=='podmiana' and e['outgoing']==task['card_id'] and (after.get('status')=='kalibracja' or 'Cel: Kalibracja' in e['note']):task['swapAt']=e['at'];task['stage']='Podmieniona pod kalibrację'
+            if e['kind']=='powrót z kalibracji':task['returnAt']=e['at'];task['stage']='Powrót z kalibracji — sprawdź wynik'
+        if card and card['status']=='kalibracja':task['stage']='W kalibracji'
+        if card and card['retired']:task['stage']='Karta wycofana'
+        if task['state']!='otwarte':task['stage']=task['state']
+        tasks.append(task)
+    return tasks
+
+def calibration_close(c,b,user):
+    state=b.get('state')
+    if state not in ('zakończone','anulowane'):raise Problem('Nieprawidłowy stan planu.')
+    reason=required_string(b,'reason',2000)
+    c.execute('BEGIN IMMEDIATE');old=c.execute('SELECT * FROM calibration_tasks WHERE id=?',(b.get('id'),)).fetchone()
+    if not old or old['version']!=b.get('version') or old['state']!='otwarte':raise Problem('Plan zmienił się. Odśwież dane.',409)
+    note=old['note']+'\n'+now()+' · '+user['name']+' · '+state+': '+reason
+    c.execute('UPDATE calibration_tasks SET state=?,note=?,version=version+1 WHERE id=?',(state,note,old['id']));c.commit();return {'ok':True}
 
 def stock_report(c):
     if not c.in_transaction:c.execute('BEGIN')
@@ -528,9 +600,9 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
             path=urlparse(self.path).path
-            if path in ('/','/app.js','/enhancements.js','/stock.js','/style.css'):
-                filename={'/':'index.html','/app.js':'app.js','/stock.js':'stock.js','/enhancements.js':'enhancements.js','/style.css':'style.css'}[path]
-                return self.reply((ROOT/'static'/filename).read_bytes(),ctype={'/':'text/html; charset=utf-8','/app.js':'text/javascript; charset=utf-8','/stock.js':'text/javascript; charset=utf-8','/enhancements.js':'text/javascript; charset=utf-8','/style.css':'text/css; charset=utf-8'}[path])
+            if path in ('/','/app.js','/enhancements.js','/stock.js','/calibration.js','/style.css'):
+                filename={'/':'index.html','/app.js':'app.js','/calibration.js':'calibration.js','/stock.js':'stock.js','/enhancements.js':'enhancements.js','/style.css':'style.css'}[path]
+                return self.reply((ROOT/'static'/filename).read_bytes(),ctype={'/':'text/html; charset=utf-8','/app.js':'text/javascript; charset=utf-8','/calibration.js':'text/javascript; charset=utf-8','/stock.js':'text/javascript; charset=utf-8','/enhancements.js':'text/javascript; charset=utf-8','/style.css':'text/css; charset=utf-8'}[path])
             user=self.session()
             with connect() as c:
                 if path=='/api/session': return self.reply({'user':{k:user[k] for k in ('id','name','role')} if user else None,'csrf':user['csrf'] if user else '', 'setup':c.execute('SELECT COUNT(*) FROM users').fetchone()[0]==0})
@@ -540,6 +612,7 @@ class Handler(BaseHTTPRequestHandler):
                     if user['role']!='admin': raise Problem('Wymagane uprawnienia administratora.',403)
                     return self.reply([dict(r) for r in c.execute('SELECT id,name,role,active FROM users')])
                 if path=='/api/locations':return self.reply([dict(r) for r in c.execute('SELECT * FROM locations ORDER BY name,hall')])
+                if path=='/api/calibration':return self.reply(calibration_list(c))
                 if path=='/api/stock':return self.reply(stock_report(c))
                 if path=='/api/backup-info':
                     if user['role']!='admin':raise Problem('Wymagany administrator.',403)
@@ -582,6 +655,9 @@ class Handler(BaseHTTPRequestHandler):
                             if v is user: del SESSIONS[k]
                     return self.reply({'ok':True},headers={'Set-Cookie':'session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0'})
                 if user['role']=='odczyt': raise Problem('To konto ma tylko dostęp do odczytu.',403)
+                if path=='/api/calibration-preview':return self.reply(calibration_preview(c,b))
+                if path=='/api/calibration-add':return self.reply(calibration_add(c,b,user))
+                if path=='/api/calibration-close':return self.reply(calibration_close(c,b,user))
                 if path=='/api/discrepancy': return self.reply(discrepancy(c,b,user))
                 if path=='/api/swap': return self.reply({'id':swap(c,b,user)})
                 if path=='/api/move':return self.reply(move_card(c,b,user))

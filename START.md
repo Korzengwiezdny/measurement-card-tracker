@@ -97,3 +97,9 @@ W spisie kart lub po otwarciu konkretnego ATE wybierz „Weryfikuj / popraw”. 
 Administrator: Baza i użytkownicy → Nowy spis z Excela. Podaj nazwę, wybierz XLSX w dotychczasowym układzie Maintenance, sprawdź podgląd i potwierdź. Tworzony jest nowy aktywny rejestr w tym samym pliku roboczym SQLite. Stary rejestr wraz z historią i kontami jest wcześniej archiwizowany w pełnej kopii w backups (nazwa w historii nowego spisu). Konta użytkowników pozostają aktywne. Karty otrzymują domyślnie status nieustalony. Import nie scala danych, nie importuje historii z Excela i nie obsługuje dowolnych układów kolumn.
 
 Powrót do archiwum: zatrzymaj serwer i uruchom server.py --db z pełną ścieżką do kopii; najlepiej pracuj na jej skopiowanym egzemplarzu. W tej wersji nie ma przełącznika wielu baz w interfejsie.
+
+## Plan kalibracji
+
+Wybierz karty ręcznie albo importuj XLSX z nagłówkami MU i/lub SN (Numer MU, Numer seryjny), w pierwszym wierszu jednego arkusza. Kolejność kolumn dowolna. W podglądzie wybierz jednoznaczne dopasowania; brak zgodności SN/MU nie jest automatycznie rozstrzygany. Nierozpoznane wiersze nie trafiają do planu. Numery zapisuj jako tekst. Plan odnosi się do jednej karty także wtedy, gdy ma kilka SN rozdzielonych +.
+
+Postęp wynika z operacji wykonanych po utworzeniu pozycji. Użyj przycisku Podmień pod kalibrację, aby otworzyć standardowy formularz z celem Kalibracja. Cofnięcie operacji usuwa jej zaliczenie w planie. Powrót rejestruj przez Przenieś / powrót; zakończenie planu wymaga opisu wyniku. Zamknięcie planu samo nie zmienia statusu technicznego. Karta może mieć tylko jedną otwartą pozycję; po zamknięciu można utworzyć kolejny cykl. Lista pokazuje bieżące lokalizacje i umożliwia przegląd zamkniętych pozycji.

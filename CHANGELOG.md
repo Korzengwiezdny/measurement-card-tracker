@@ -1,3 +1,11 @@
+# 0.1.0-alpha.7 — 2026-10-09
+
+- Plan kalibracji: ręczne listy kart i import XLSX po nagłówkach MU/SN.
+- Jawne rozstrzyganie wielu dopasowań, brak dopasowania widoczny w podglądzie.
+- Aktualne lokalizacje, wykrywanie podmian i powrotów z historii oraz uwzględnianie cofnięć.
+- Zamknięcie lub anulowanie z opisem i autorem; ochrona przed powieleniem otwartego zlecenia.
+- Plany są archiwizowane razem z bazą przy tworzeniu nowego spisu.
+
 # 0.1.0-alpha.6 — 2026-10-09
 
 - Nowy aktywny spis z Excela Maintenance: podgląd, potwierdzenie, pełne archiwum poprzedniej bazy i zachowanie kont.

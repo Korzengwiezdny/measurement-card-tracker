@@ -38,6 +38,31 @@ class AppTests(unittest.TestCase):
             with self.assertRaises(server.Problem):server.replace_register(c,[],dict(registerName='Nowy'),self.user)
             self.assertEqual(c.execute('SELECT COUNT(*) FROM cards').fetchone()[0],3)
 
+    def test_calibration_matching_and_excel(self):
+        with server.connect() as c:
+            c.execute("UPDATE cards SET serial='PART1 + PART2',mu='' WHERE id='a'");c.commit()
+            self.assertEqual([r['id'] for r in server.calibration_matches(c,'',' part2 ')],['a'])
+            self.assertEqual(server.calibration_matches(c,'MU2','PART1'),[])
+            wb=openpyxl.Workbook();ws=wb.active;ws.append(['SN','MU']);ws.append(['PART2','']);raw=io.BytesIO();wb.save(raw)
+            result=server.calibration_preview(c,{'file':base64.b64encode(raw.getvalue()).decode()})
+            self.assertEqual(result['rows'][0]['matches'][0]['id'],'a')
+    def test_calibration_swap_undo_and_duplicate(self):
+        with server.connect() as c:
+            body=dict(batch='Kalibracja',ids=['b'])
+            self.assertEqual(server.calibration_add(c,body,self.user)['added'],1)
+            self.assertEqual(server.calibration_add(c,body,self.user)['skipped'],1)
+            event=server.swap(c,{**self.b,'destinationStatus':'kalibracja'},self.user)
+            plan=server.calibration_list(c)[0];self.assertTrue(plan['swapAt']);self.assertEqual(plan['card']['location'],'Kalibracja')
+            server.undo(c,{'id':event,'note':'Test'},self.user)
+            self.assertEqual(server.calibration_list(c)[0]['swapAt'],'')
+            server.calibration_close(c,dict(id=plan['id'],version=0,state='anulowane',reason='Odwołane'),self.user)
+            self.assertEqual(server.calibration_add(c,body,self.user)['added'],1)
+    def test_calibration_ambiguous_serial_not_auto_resolved(self):
+        with server.connect() as c:
+            c.execute("UPDATE cards SET serial='SN1' WHERE id='c'");c.commit()
+            self.assertEqual(len(server.calibration_matches(c,'','SN1')),2)
+            self.assertEqual(server.calibration_matches(c,'','UNKNOWN'),[])
+
     def new_card_body(self,**patch):
         return dict(serial='NEW1 + NEW2',model='PXIe 4081',hall='Maintenance',location='Magazyn MD',status='nieustalony',physicallyVerified=True,reason='Zakup 2026',**patch)
     def test_stock_shared_spare_and_model_alias(self):
@@ -354,4 +379,3 @@ class AppTests(unittest.TestCase):
             self.assertEqual(c.execute("SELECT location FROM cards WHERE id='b'").fetchone()[0],'ATE 08')
 
 if __name__=='__main__':unittest.main(verbosity=2)
-
