@@ -14,6 +14,30 @@ class AppTests(unittest.TestCase):
     def tearDown(self):
         for suffix in ('','-wal','-shm'):
             Path(str(self.path)+suffix).unlink(missing_ok=True)
+    def test_new_register_archives_and_replaces(self):
+        with server.connect() as c:
+            c.execute("INSERT INTO users(name,password,role) VALUES('admin','hash','admin')");c.commit()
+            row=dict(c.execute("SELECT * FROM cards WHERE id='a'").fetchone());row.update(id='new',serial='NEW-SN')
+            revision=server.register_revision(c)
+            result=server.replace_register(c,[row],dict(confirmNewRegister=True,registerName='Nowy',revision=revision,filename='test.xlsx'),self.user)
+            self.assertEqual(c.execute('SELECT id FROM cards').fetchall()[0][0],'new')
+            self.assertEqual(c.execute('SELECT COUNT(*) FROM users').fetchone()[0],1)
+            self.assertEqual(c.execute('SELECT kind FROM events').fetchone()[0],'nowy spis')
+            archive=server.DB_PATH.parent.parent/'backups'/result['backup']
+            try:
+                with sqlite3.connect(archive,factory=server.Connection) as old:self.assertEqual(old.execute('SELECT COUNT(*) FROM cards').fetchone()[0],3)
+            finally:archive.unlink()
+    def test_new_register_rejects_stale_preview(self):
+        with server.connect() as c:
+            revision=server.register_revision(c)
+            c.execute("UPDATE cards SET version=1 WHERE id='a'");c.commit()
+            with self.assertRaises(server.Problem):server.replace_register(c,[],dict(confirmNewRegister=True,registerName='Nowy',revision=revision),self.user)
+            self.assertEqual(c.execute('SELECT COUNT(*) FROM cards').fetchone()[0],3)
+    def test_new_register_requires_confirmation(self):
+        with server.connect() as c:
+            with self.assertRaises(server.Problem):server.replace_register(c,[],dict(registerName='Nowy'),self.user)
+            self.assertEqual(c.execute('SELECT COUNT(*) FROM cards').fetchone()[0],3)
+
     def new_card_body(self,**patch):
         return dict(serial='NEW1 + NEW2',model='PXIe 4081',hall='Maintenance',location='Magazyn MD',status='nieustalony',physicallyVerified=True,reason='Zakup 2026',**patch)
     def test_stock_shared_spare_and_model_alias(self):
@@ -330,3 +354,4 @@ class AppTests(unittest.TestCase):
             self.assertEqual(c.execute("SELECT location FROM cards WHERE id='b'").fetchone()[0],'ATE 08')
 
 if __name__=='__main__':unittest.main(verbosity=2)
+

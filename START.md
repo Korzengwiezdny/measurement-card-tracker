@@ -91,3 +91,9 @@ Przy aktualizacji jako magazyn oznaczane są istniejące lokalizacje zaczynając
 ## Weryfikacja spisu bez podmiany
 
 W spisie kart lub po otwarciu konkretnego ATE wybierz „Weryfikuj / popraw”. Administrator może poprawić opis tej samej karty. Opcja „Na stanowisku jest inna karta” jest dostępna także dla technika: wskazuje kartę znalezioną (istniejącą lub nową), zapisuje stan zastany i oznacza nieodnalezioną kartę do weryfikacji. Nie wykonuje fizycznej podmiany ani nie otwiera formularza podmiany po zapisie. Obie operacje zapisują historię.
+
+## Nowy spis z Excela
+
+Administrator: Baza i użytkownicy → Nowy spis z Excela. Podaj nazwę, wybierz XLSX w dotychczasowym układzie Maintenance, sprawdź podgląd i potwierdź. Tworzony jest nowy aktywny rejestr w tym samym pliku roboczym SQLite. Stary rejestr wraz z historią i kontami jest wcześniej archiwizowany w pełnej kopii w backups (nazwa w historii nowego spisu). Konta użytkowników pozostają aktywne. Karty otrzymują domyślnie status nieustalony. Import nie scala danych, nie importuje historii z Excela i nie obsługuje dowolnych układów kolumn.
+
+Powrót do archiwum: zatrzymaj serwer i uruchom server.py --db z pełną ścieżką do kopii; najlepiej pracuj na jej skopiowanym egzemplarzu. W tej wersji nie ma przełącznika wielu baz w interfejsie.

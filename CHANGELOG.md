@@ -1,3 +1,8 @@
+# 0.1.0-alpha.6 — 2026-10-09
+
+- Nowy aktywny spis z Excela Maintenance: podgląd, potwierdzenie, pełne archiwum poprzedniej bazy i zachowanie kont.
+- Kontrola zmian od podglądu do zatwierdzenia, atomowy zapis.
+
 # 0.1.0-alpha.5 — 2026-10-09
 
 - Spójny, stonowany wygląd wszystkich ekranów, formularzy i okien dialogowych.

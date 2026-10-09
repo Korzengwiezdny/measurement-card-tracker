@@ -132,6 +132,29 @@ def parse_workbook(raw):
         r['review']='; '.join(issues)
     return rows
 
+def register_revision(c):
+    snapshot={table:[tuple(r) for r in c.execute('SELECT * FROM '+table+' ORDER BY 1')] for table in ('cards','events','locations','imports')}
+    return hashlib.sha256(json.dumps(snapshot,sort_keys=True).encode()).hexdigest()
+
+def replace_register(c,rows,b,user):
+    if b.get('confirmNewRegister') is not True:raise Problem('Potwierdź utworzenie nowego spisu zamiast obecnego.')
+    name=required_string(b,'registerName',120)
+    c.execute('BEGIN IMMEDIATE')
+    if b.get('revision')!=register_revision(c):raise Problem('Baza zmieniła się od podglądu. Sprawdź plik ponownie.',409)
+    # The write lock prevents any changes between the archive snapshot and replacement.
+    backup=manual_backup()
+    for table in ('events','cards','imports','locations'):c.execute('DELETE FROM '+table)
+    insert_cards(c,rows)
+    for r in c.execute('SELECT id,name FROM locations').fetchall():
+        label=r['name'].strip().lower()
+        if label.startswith(('magazyn','magazn','półka','polka')) or label=='33-b':c.execute('UPDATE locations SET stock=1 WHERE id=?',(r['id'],))
+    c.executemany('INSERT OR IGNORE INTO locations(name,hall) VALUES(?,?)',[('Magazyn MD','Maintenance'),('Dział kalibracji','H2')])
+    c.execute("UPDATE locations SET stock=1 WHERE name='Magazyn MD' AND hall='Maintenance'")
+    c.execute('INSERT INTO imports VALUES(?,?,?,?,?)',(secrets.token_hex(12),now(),user['name'],name+' — '+text(b.get('filename')),len(rows)))
+    c.execute('INSERT INTO events VALUES(?,?,?,?,?,?,?,?,?,NULL)',(secrets.token_hex(12),now(),user['name'],'nowy spis',None,None,'[]','[]',name+'; archiwum poprzedniej bazy: '+backup['name']))
+    c.commit()
+    return {'count':len(rows),'backup':backup['name']}
+
 def insert_cards(c, rows):
     for r in rows:
         keys=list(r)
@@ -579,10 +602,11 @@ class Handler(BaseHTTPRequestHandler):
                     try:c.execute('INSERT INTO users(name,password,role) VALUES(?,?,?)',(name,password_hash(password),role));c.commit()
                     except sqlite3.IntegrityError:raise Problem('Taki login już istnieje.',409)
                     return self.reply({'ok':True})
-                if path in ('/api/import-preview','/api/import'):
+                if path in ('/api/import-preview','/api/import','/api/import-new'):
                     try: raw=base64.b64decode(b.get('file',''),validate=True);rows=parse_workbook(raw)
                     except Exception as e: raise Problem('Nie można odczytać pliku: '+str(e))
-                    if path.endswith('preview'):return self.reply({'count':len(rows),'reviewCount':sum(bool(r['review']) for r in rows),'sample':rows[:8]})
+                    if path.endswith('preview'):return self.reply({'count':len(rows),'reviewCount':sum(bool(r['review']) for r in rows),'sample':rows[:8],'revision':register_revision(c)})
+                    if path=='/api/import-new':return self.reply(replace_register(c,rows,b,user))
                     c.execute('BEGIN IMMEDIATE')
                     if c.execute('SELECT COUNT(*) FROM cards').fetchone()[0] or c.execute('SELECT COUNT(*) FROM events').fetchone()[0]:raise Problem('Baza zawiera dane. Import początkowy nie może nadpisać kart ani historii.',409)
                     insert_cards(c,rows);c.execute('INSERT INTO imports VALUES(?,?,?,?,?)',(secrets.token_hex(12),now(),user['name'],text(b.get('filename')),len(rows)));c.commit();return self.reply({'count':len(rows)})
