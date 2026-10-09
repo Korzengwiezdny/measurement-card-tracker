@@ -17,8 +17,10 @@ Aplikacja zapisuje autora, powód i historię lokalizacji, aby można było odtw
 - Przenoszenie oraz powroty z kalibracji i naprawy.
 - Słownik lokalizacji, filtry historii, szkic podmiany, skaner S/N działający jak klawiatura.
 - Konta administratora, technika i odczytu; dzienne i ręczne kopie bazy.
-
 - Stan magazynowy i braki zapasu według modelu oraz stanowiska.
+
+- Plan kalibracji: ręczne listy i import XLSX MU/SN, dopasowanie do kart, lokalizacje i postęp podmian.
+- Weryfikacja kart bez podmiany oraz nowy spis z Excela z archiwizacją poprzedniej bazy.
 
 ## Czysta instalacja z Git
 
@@ -38,7 +40,7 @@ Na komputerze z gotowym Pythonem i zależnościami można korzystać z `Uruchom.
 .\.venv\Scripts\python.exe test_app.py
 ```
 
-43 testy automatycznych. Testy korzystają z tymczasowej, syntetycznej bazy i nie zmieniają używanego spisu. Interfejs dodatkowo sprawdzono na oddzielnej bazie testowej; fizyczny czytnik wymaga próby na stanowisku.
+43 testy automatyczne. Testy korzystają z tymczasowej, syntetycznej bazy i nie zmieniają używanego spisu. Interfejs dodatkowo sprawdzono na oddzielnej bazie testowej; fizyczny czytnik wymaga próby na stanowisku.
 
 ## Dane i aktualizacje
 
@@ -54,8 +56,13 @@ Plik `VERSION` określa wersję wydania. Pierwszy tag to `v0.1.0-alpha.1`. Kolej
 
 - `v0.1.0-alpha.1`: pierwsza wersja lokalna, ewidencja i historia ruchów kart.
 - `v0.1.0-alpha.2`: dodawanie pustych stanowisk ATE/SATE/VATE i przypisywanie wyposażenia.
+- `v0.1.0-alpha.3`: stan magazynowy i ocena zapasu dla stanowisk.
+- `v0.1.0-alpha.4`: samodzielna weryfikacja i korekta stanu kart.
+- `v0.1.0-alpha.5`: odświeżony wygląd aplikacji.
+- `v0.1.0-alpha.6`: nowy spis z Excela i archiwizacja poprzedniej bazy.
+- `v0.1.0-alpha.7`: plan kalibracji, dopasowanie MU/SN i śledzenie postępu.
 
-Obie wersje są tagami jednego repozytorium. Na GitHubie można przeglądać je i pobierać osobno; opis zmian jest w `CHANGELOG.md`. Bieżąca dokumentacja na `main` może zawierać późniejsze doprecyzowania bez zmiany kodu wydania. Nie zmieniamy istniejących tagów przy poprawkach dokumentacji.
+Wszystkie wersje są tagami jednego repozytorium. Na GitHubie można przeglądać je i pobierać osobno; opis zmian jest w `CHANGELOG.md`. Bieżąca dokumentacja na `main` może zawierać późniejsze doprecyzowania bez zmiany kodu wydania. Nie zmieniamy istniejących tagów przy poprawkach dokumentacji.
 
 Repozytorium zawiera wyłącznie kod, instrukcje i testy na syntetycznych danych. Nie zawiera rzeczywistego spisu kart, historii operacyjnej, kont użytkowników, haseł ani kopii baz. Po czystej instalacji aplikacja tworzy pustą bazę, a użytkownik zakłada własne konto administratora. Przykładowe identyfikatory kart i kont w testach są fikcyjne.
 
